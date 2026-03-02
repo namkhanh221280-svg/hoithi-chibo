@@ -2,180 +2,135 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đấu Trường Tri Thức - Sinh Hoạt Chi Bộ Online</title>
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-    
+    <title>Đấu Trường Tri Thức - Sinh Hoạt Chi Bộ</title>
     <style>
         :root { --red-flag: #da251d; --yellow-star: #ffff00; }
         body { 
             font-family: 'Segoe UI', 'Times New Roman', sans-serif; background: linear-gradient(135deg, #da251d 0%, #a31a14 100%); 
             color: #fff; text-align: center; margin: 0; padding: 10px; min-height: 100vh; overflow-y: auto;
+            position: relative;
         }
-        .hidden { display: none !important; }
-        .party-flag { position: absolute; top: 15px; left: 15px; width: 120px; z-index: 100; filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.5)); }
+        .party-flag { position: absolute; top: 15px; left: 15px; width: 280px; z-index: 100; filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.5)); }
         
-        #setup-screen, #role-selection { 
+        #setup-screen, #video-screen { 
             position: relative; z-index: 101; background: white; color: #333; 
-            width: 85%; max-width: 600px; margin: 50px auto; padding: 25px; 
+            width: 85%; max-width: 800px; margin: 30px auto; padding: 25px; 
             border-radius: 15px; border: 4px solid var(--yellow-star); 
         }
-
-        /* Giao diện iPad */
-        #mobile-buzzer-ui { height: 90vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .big-buzzer { 
-            width: 280px; height: 280px; border-radius: 50%; border: 15px solid white;
-            background: radial-gradient(circle, #ff4d4d, #b30000); color: white;
-            font-size: 2.5em; font-weight: bold; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            transition: 0.1s;
-        }
-        .big-buzzer:disabled { background: #555; opacity: 0.3; cursor: not-allowed; border-color: #888; }
         
-        .mobile-options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 95%; max-width: 500px; margin-top: 20px; }
-        .mobile-opt-btn { 
-            padding: 35px 10px; font-size: 2.5em; font-weight: bold; color: white; border: 5px solid white; border-radius: 15px; cursor: pointer;
-        }
-        .m-a { background: #2980b9; } .m-b { background: #27ae60; }
-        .m-c { background: #f39c12; } .m-d { background: #8e44ad; }
-
-        /* Giao diện Máy tính */
-        .score-board { display: flex; justify-content: center; gap: 15px; margin: 20px 0; flex-wrap: wrap; }
+        #game-screen, #video-screen { display: none; }
+        
+        .score-board { display: flex; justify-content: center; gap: 15px; margin: 20px 0; }
         .group-card { background: rgba(255, 255, 255, 0.15); border: 2px solid var(--yellow-star); padding: 15px; border-radius: 12px; width: 220px; transition: 0.3s; }
         .group-card.active { background: var(--yellow-star); color: var(--red-flag); transform: scale(1.1); box-shadow: 0 0 30px var(--yellow-star); }
+        .group-card.disabled { opacity: 0.2; filter: grayscale(1); transform: scale(0.9); border-color: #666; }
         
-        #quiz-container { background: #fff; color: #333; width: 90%; max-width: 850px; margin: 0 auto; padding: 25px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        #stage-label { 
+            color: white; background: rgba(0,0,0,0.4); display: inline-block; 
+            padding: 10px 40px; border-radius: 20px; font-size: 1.3em; 
+            font-weight: bold; line-height: 1.4; margin-bottom: 10px;
+        }
+        .sub-label { font-size: 0.7em; font-style: italic; font-weight: normal; display: block; margin-top: 3px; }
+
+        #quiz-container { background: #fff; color: #333; width: 90%; max-width: 900px; margin: 0 auto; padding: 25px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
         .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        .option { padding: 20px; background: #f8f9fa; border: 2px solid #ddd; border-radius: 10px; font-size: 1.4em; font-weight: bold; }
-        .option.correct { background: #27ae60 !important; color: #fff; border-color: #2ecc71; transform: scale(1.05); }
+        .option { padding: 15px; background: #f8f9fa; border: 2px solid #ddd; border-radius: 10px; font-size: 1.1em; font-weight: bold; cursor: default; pointer-events: none; text-align: left; }
+        .option.enabled { cursor: pointer; pointer-events: auto; border-color: #3498db; background: #e3f2fd; }
+        .option.correct { background: #27ae60 !important; color: #fff; border-color: #219150; }
         .option.wrong { background: #e74c3c !important; color: #fff; border-color: #c0392b; }
-        .btn-red { background: var(--red-flag); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px; font-size: 1em; }
+        
+        #buzzer-status { font-size: 1.8em; min-height: 50px; margin: 20px; color: var(--yellow-star); font-weight: bold; text-shadow: 1px 1px 3px #000; }
+        #score-input-zone { display: none; margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee; }
+        .btn-red { background: var(--red-flag); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1em; }
+        input[type="number"] { padding: 10px; width: 80px; font-size: 1.2em; text-align: center; border: 2px solid #ccc; border-radius: 5px; }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;"> 
 
     <img src="cd-removebg-preview.png" alt="Cờ Đảng" class="party-flag">
 
-    <div id="role-selection">
-        <h2 style="color:var(--red-flag)">BẠN LÀ THIẾT BỊ NÀO?</h2>
-        <button class="btn-red" onclick="selectRole('admin')">MÁY TÍNH (TRÌNH CHIẾU)</button>
-        <hr>
-        <p>Chọn đội cho iPad/Điện thoại:</p>
-        <button class="btn-red" onclick="selectRole('player', 0)">ĐỘI TIÊN PHONG</button>
-        <button class="btn-red" onclick="selectRole('player', 1)">ĐỘI SÁNG TẠO</button>
-        <button class="btn-red" onclick="selectRole('player', 2)">ĐỘI QUYẾT THẮNG</button>
-    </div>
-
-    <div id="setup-screen" class="hidden">
-        <h2 style="color: var(--red-flag);">THIẾT LẬP HỘI THI</h2>
+    <div id="setup-screen">
+        <h2 style="color: var(--red-flag); margin-top: 0;">THIẾT LẬP HỘI THI</h2>
+        <p style="text-align: left; font-weight: bold;">Danh sách đồng chí tham gia:</p>
         <textarea id="name-input" style="width:96%; height:80px; padding: 10px;">Đồng chí Lê Thị Diệu Thúy, Đồng chí Hoàng Tú Anh, Đồng chí Lê Thị Thanh Lĩnh, Đồng chí Đỗ Thị Huế, Đồng chí Đồng Thị Thảo, Đồng chí Nguyễn Thị Hằng, Đồng chí Nguyễn Thị Thanh Châm, Đồng chí Phạm Thị Lan Hương, Đồng chí Đỗ Giang Thanh, Đồng chí Nguyễn Thị Hạnh, Đồng chí Đỗ Hải Linh, Đồng chí Nguyễn Thị Yến, Đồng chí Vũ Hồng Nga, Đồng chí Cao Thị Doan, Đồng chí Bùi Thị Thu Hằng</textarea>
-        <input type="text" id="video-filename" style="width:96%; padding: 10px; margin-top:10px" value="video_tu_lieu.mp4">
-        <button onclick="setupGroups()" class="btn-red" style="margin-top:20px">KHAI MẠC SINH HOẠT</button>
+        <p style="text-align: left; font-weight: bold; margin-top: 15px;">Tên file video trong máy:</p>
+        <input type="text" id="video-filename" style="width:96%; padding: 10px;" value="video_tu_lieu.mp4">
+        <div style="margin-top: 20px;"><button onclick="setupGroups()" class="btn-red">KHAI MẠC SINH HOẠT</button></div>
     </div>
 
-    <div id="mobile-buzzer-ui" class="hidden">
-        <h1 id="player-team-name" style="color:var(--yellow-star)">ĐỘI CỦA BẠN</h1>
-        <div id="p-buzzer-zone">
-            <button id="buzzer-btn" class="big-buzzer" onclick="playerPressBuzzer()">BẤM CHUÔNG</button>
+    <div id="game-screen">
+        <h1 id="main-title" style="color: var(--yellow-star); text-shadow: 2px 2px 5px #000; margin-top: 5px;">SINH HOẠT CHUYÊN ĐỀ</h1>
+        
+        <div id="stage-label">
+            <b>CHẶNG 1: DẤU SON LỊCH SỬ</b><br>
+            <span class="sub-label">(Ôn lại những mốc son 96 năm của Đảng)</span>
         </div>
-        <div id="p-answer-zone" class="hidden">
-            <h2 style="color:white">CHỌN ĐÁP ÁN:</h2>
-            <div class="mobile-options-grid">
-                <button class="mobile-opt-btn m-a" onclick="playerSubmitAnswer(0)">A</button>
-                <button class="mobile-opt-btn m-b" onclick="playerSubmitAnswer(1)">B</button>
-                <button class="mobile-opt-btn m-c" onclick="playerSubmitAnswer(2)">C</button>
-                <button class="mobile-opt-btn m-d" onclick="playerSubmitAnswer(3)">D</button>
-            </div>
-        </div>
-        <p id="player-msg" style="margin-top:20px; font-size: 1.5em; font-weight: bold;"></p>
-    </div>
-
-    <div id="game-screen" class="hidden">
-        <h1 id="main-title" style="color: var(--yellow-star); text-shadow: 2px 2px 5px #000;">SINH HOẠT CHUYÊN ĐỀ ONLINE</h1>
+        
         <div class="score-board">
-            <div id="card-0" class="group-card"><strong id="name-0">ĐỘI TIÊN PHONG</strong><div id="score-0" style="font-size:2.5em">0</div><div id="mem-0" style="font-size:0.8em"></div></div>
-            <div id="card-1" class="group-card"><strong id="name-1">ĐỘI SÁNG TẠO</strong><div id="score-1" style="font-size:2.5em">0</div><div id="mem-1" style="font-size:0.8em"></div></div>
-            <div id="card-2" class="group-card"><strong id="name-2">ĐỘI QUYẾT THẮNG</strong><div id="score-2" style="font-size:2.5em">0</div><div id="mem-2" style="font-size:0.8em"></div></div>
+            <div id="card-0" class="group-card"><strong id="name-0">ĐỘI TIÊN PHONG</strong><div id="score-0" style="font-size:2em">0</div><div id="mem-0" style="font-size:0.7em"></div></div>
+            <div id="card-1" class="group-card"><strong id="name-1">ĐỘI SÁNG TẠO</strong><div id="score-1" style="font-size:2em">0</div><div id="mem-1" style="font-size:0.7em"></div></div>
+            <div id="card-2" class="group-card"><strong id="name-2">ĐỘI QUYẾT THẮNG</strong><div id="score-2" style="font-size:2em">0</div><div id="mem-2" style="font-size:0.7em"></div></div>
         </div>
 
         <div id="quiz-container">
-            <div id="question-text" style="font-size:1.8em; font-weight:bold; color:var(--red-flag); line-height: 1.4;"></div>
+            <div id="question-text" style="font-size:1.5em; font-weight:bold; color:var(--red-flag); line-height: 1.4; text-align: justify;"></div>
             <div class="options-grid" id="options-grid"></div>
-            <div id="score-input-zone" class="hidden" style="margin-top:20px; background:#eee; padding:15px; border-radius:10px;">
-                Nhập điểm tự luận: <input type="number" id="judge-score" value="10" style="padding:10px; width:60px; font-size:1.2em">
-                <button onclick="confirmEssayScore()" class="btn-red">XÁC NHẬN CỘNG ĐIỂM</button>
+            <div id="score-input-zone">
+                <p style="font-weight: bold; color: #da251d;">GIÁM KHẢO CHẤM ĐIỂM:</p>
+                <input type="number" id="judge-score" value="10">
+                <button onclick="confirmEssayScore()" class="btn-red">XÁC NHẬN ĐIỂM</button>
             </div>
-            <button id="reset-buzzer-btn" onclick="adminResetBuzzer()" class="btn-red" style="margin-top:20px; background:#2980b9">MỞ LẠI CHUÔNG</button>
-            <button class="btn-red" style="background:#7f8c8d" onclick="nextQuestion()">BỎ QUA / CÂU TIẾP</button>
         </div>
-        <div id="buzzer-status" style="font-size:2em; margin:20px; color:var(--yellow-star); font-weight:bold; text-shadow: 1px 1px 3px #000;"></div>
+        <div id="buzzer-status"></div>
     </div>
 
-    <div id="video-screen" class="hidden">
-        <h2 style="color: var(--red-flag); font-size: 2em;">CHẶNG 2: HÀNH TRÌNH VẺ VANG</h2>
-        <div id="video-container"></div>
-        <button onclick="goToStage3()" class="btn-red" style="font-size:1.5em; padding: 20px 40px;">SANG CHẶNG 3: HIẾN KẾ XÂY ĐẢNG</button>
+    <div id="video-screen">
+        <h2 style="color: var(--red-flag);">CHẶNG 2: HÀNH TRÌNH VẺ VANG</h2>
+        <b>(Xem video - cảm nhận chặng đường lãnh đạo của Đảng)</b>
+        <div id="video-container" style="margin-top:15px;"></div>
+        <div style="margin-top: 20px;"><button onclick="goToStage3()" class="btn-red">XONG VIDEO -> SANG CHẶNG 3</button></div>
     </div>
 
     <audio id="snd-buzzer" src="https://assets.mixkit.co/active_storage/sfx/2962/2962-preview.mp3"></audio>
+    <audio id="snd-correct" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
+    <audio id="snd-wrong" src="https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3"></audio>
+    <audio id="snd-victory" src="https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3"></audio>
 
     <script>
-        // Cấu hình Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyCr-SumbfkNMGbYkQ5hL9P8d86hGvBC1AI",
-            authDomain: "hoithichibo.firebaseapp.com",
-            databaseURL: "https://hoithichibo-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "hoithichibo",
-            storageBucket: "hoithichibo.firebasestorage.app",
-            messagingSenderId: "209464097119",
-            appId: "1:209464097119:web:a9c78c7275f6854cd91eea"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        // Dữ liệu câu hỏi
         const stage1Questions = [
-            { q: "Đảng Cộng sản Việt Nam được thành lập vào ngày, tháng, năm nào?", options: ["03/02/1929", "19/05/1930", "03/02/1930", "02/09/1945"], correct: 2 },
-            { q: "Người sáng lập và rèn luyện Đảng Cộng sản Việt Nam là ai?", options: ["Trường Chinh", "Võ Nguyên Giáp", "Tôn Đức Thắng", "Hồ Chí Minh"], correct: 3 },
-            { q: "Hội nghị hợp nhất các tổ chức cộng sản thành Đảng Cộng sản Việt Nam được tổ chức tại đâu?", options: ["Quảng Châu (Trung Quốc)", "Bắc Kinh (Trung Quốc)", "Hồng Kông (Trung Quốc)", "Hà Nội (Việt Nam)"], correct: 2 },
-            { q: "Sự kiện lịch sử nào năm 1945 đánh dấu vai trò lãnh đạo quyết định của Đảng đối với dân tộc?", options: ["Chiến thắng Điện Biên Phủ", "Cách mạng Tháng Tám", "Tổng tiến công Tết Mậu Thân", "Ngày toàn quốc kháng chiến"], correct: 1 },
-            { q: "Trong hai cuộc kháng chiến, Đảng đã lãnh đạo nhân dân ta giành thắng lợi trước ________.", options: ["Thực dân Pháp và phát xít Nhật", "Đế quốc Mỹ và phát xít Nhật", "Thực dân Pháp và đế quốc Mỹ", "Đế quốc Mỹ và thực dân Anh"], correct: 2 },
-            { q: "Đại hội đại biểu toàn quốc lần thứ VI của Đảng (1986) có ý nghĩa lịch sử là:", options: ["Hoàn thành thống nhất đất nước", "Đề ra đường lối công nghiệp hóa", "Khởi xướng công cuộc Đổi mới đất nước", "Mở rộng quan hệ đối ngoại"], correct: 2 },
-            { q: "Tính đến năm 2026, Đảng Cộng sản Việt Nam đã trải qua bao nhiêu năm xây dựng và phát triển?", options: ["90 năm", "95 năm", "96 năm", "100 năm"], correct: 2 },
-            { q: "Một trong những nguyên tắc tổ chức cơ bản của Đảng Cộng sản Việt Nam là:", options: ["Dân chủ tuyệt đối", "Tập trung dân chủ", "Cá nhân phụ trách", "Đa số quyết định"], correct: 1 },
-            { q: "Trong giai đoạn hiện nay, nhiệm vụ trọng tâm của Đảng là xây dựng Đảng trong sạch, vững mạnh...", options: ["đoàn kết", "vững mạnh", "toàn diện", "hiện đại"], correct: 1 },
-            { q: "Đối với ngành giáo dục, vai trò lãnh đạo của Đảng thể hiện rõ nhất ở nội dung nào?", options: ["Chỉ đạo thi cử", "Quản lý vật chất", "Định hướng giáo dục toàn diện", "Đổi mới khen thưởng"], correct: 2 },
-            { q: "Chủ đề Đại hội XIV của Đảng là gì?", options: ["Lá cờ vẻ vang...", "Tự cường, tự tin...", "Vững bước đi lên...", "Phồn vinh, văn minh..."], correct: 3 },
-            { q: "Phương châm Đại hội XIV của Đảng là:", options: ["Đoàn kết - Dân chủ...", "Tăng cường xây dựng Đảng", "Đoàn kết - Dân chủ - Kỷ cương - Đột phá...", "Vững mạnh"], correct: 2 },
-            { q: "Đồng chí giữ chức vụ Tổng Bí thư Ban Chấp hành Trung ương Đảng khóa XIV là:", options: ["Phạm Minh Chính", "Tô Lâm", "Trần Sỹ Thanh", "Trần Văn Bắc"], correct: 1 },
-            { q: "Nhiệm kỳ Đại hội XIV đề ra bao nhiêu nhiệm vụ trọng tâm?", options: ["4", "5", "6", "7"], correct: 2 },
-            { q: "Đại hội XIV tập trung vào mấy đột phá chiến lược?", options: ["1", "2", "3", "4"], correct: 2 }
+            { q: "Đảng Cộng sản Việt Nam được thành lập vào ngày, tháng, năm nào?", options: ["03/02/1929", "19/05/1930", "03/02/1930", "02/09/1945"], correct: 2, p: 10 },
+            { q: "Người sáng lập và rèn luyện Đảng Cộng sản Việt Nam là ai?", options: ["Trường Chinh", "Võ Nguyên Giáp", "Tôn Đức Thắng", "Hồ Chí Minh"], correct: 3, p: 10 },
+            { q: "Hội nghị hợp nhất các tổ chức cộng sản thành Đảng Cộng sản Việt Nam được tổ chức tại đâu?", options: ["Quảng Châu (Trung Quốc)", "Bắc Kinh (Trung Quốc)", "Hồng Kông (Trung Quốc)", "Hà Nội (Việt Nam)"], correct: 2, p: 10 },
+            { q: "Sự kiện lịch sử nào năm 1945 đánh dấu vai trò lãnh đạo quyết định của Đảng đối với dân tộc?", options: ["Chiến thắng Điện Biên Phủ", "Cách mạng Tháng Tám", "Tổng tiến công Tết Mậu Thân", "Ngày toàn quốc kháng chiến"], correct: 1, p: 10 },
+            { q: "Trong hai cuộc kháng chiến, Đảng đã lãnh đạo nhân dân ta giành thắng lợi trước ________.", options: ["Thực dân Pháp và phát xít Nhật", "Đế quốc Mỹ và phát xít Nhật", "Thực dân Pháp và đế quốc Mỹ", "Đế quốc Mỹ và thực dân Anh"], correct: 2, p: 10 },
+            { q: "Đại hội đại biểu toàn quốc lần thứ VI của Đảng (1986) có ý nghĩa lịch sử là:", options: ["Hoàn thành thống nhất đất nước", "Đề ra đường lối công nghiệp hóa", "Khởi xướng công cuộc Đổi mới đất nước", "Mở rộng quan hệ đối ngoại"], correct: 2, p: 10 },
+            { q: "Tính đến năm 2026, Đảng Cộng sản Việt Nam đã trải qua bao nhiêu năm xây dựng và phát triển?", options: ["90 năm", "95 năm", "96 năm", "100 năm"], correct: 2, p: 10 },
+            { q: "Một trong những nguyên tắc tổ chức cơ bản của Đảng Cộng sản Việt Nam là:", options: ["Dân chủ tuyệt đối", "Tập trung dân chủ", "Cá nhân phụ trách", "Đa số quyết định"], correct: 1, p: 10 },
+            { q: "Trong giai đoạn hiện nay, nhiệm vụ trọng tâm của Đảng là xây dựng Đảng trong sạch, ________, đồng thời phát triển kinh tế – xã hội và nâng cao đời sống nhân dân.", options: ["đoàn kết", "vững mạnh", "toàn diện", "hiện đại"], correct: 1, p: 10 },
+            { q: "Đối với ngành giáo dục, vai trò lãnh đạo của Đảng thể hiện rõ nhất ở nội dung nào?", options: ["Chỉ đạo thi cử, kiểm tra", "Quản lý cơ sở vật chất trường học", "Định hướng giáo dục toàn diện, giáo dục đạo đức – lý tưởng cho thế hệ trẻ", "Đổi mới hình thức khen thưởng"], correct: 2, p: 10 },
+            { q: "Chủ đề Đại hội XIV của Đảng là:", options: ["Dưới lá cờ vẻ vang của Đảng, chung sức, đồng lòng quyết tâm thực hiện thắng lợi các mục tiêu phát triển đất nước đến năm 2030", "Dưới lá cờ vẻ vang của Đảng, chung sức, đồng lòng quyết tâm thực hiện thắng lợi các mục tiêu phát triển đất nước đến năm 2030; tự cường, tự tin, tiến mạnh trong kỷ nguyên vươn mình của dân tộc", "Dưới lá cờ vẻ vang của Đảng, chung sức, đồng lòng quyết tâm thực hiện thắng lợi các mục tiêu phát triển đất nước đến năm 2030; vững bước đi lên chủ nghĩa xã hội", "Dưới lá cờ vẻ vang của Đảng, chung sức, đồng lòng quyết tâm thực hiện thắng lợi các mục tiêu phát triển đất nước đến năm 2030; tự cường, tự tin, tiến mạnh trong kỷ nguyên vươn mình của dân tộc, vì hòa bình, độc lập, dân chủ, giàu mạnh, phồn vinh, văn minh, hạnh phúc, vững bước đi lên chủ nghĩa xã hội"], correct: 3, p: 10 },
+            { q: "Phương châm Đại hội XIV của Đảng là:", options: ["Đoàn kết - Dân chủ - Kỷ cương - Sáng tạo - Phát triển", "Tăng cường xây dựng Đảng trong sạch, vững mạnh", "Đoàn kết - Dân chủ - Kỷ cương - Đột phá - Phát triển", "Đoàn kết - Dân chủ - Kỷ cương - Vững mạnh - Phát triển"], correct: 2, p: 10 },
+            { q: "Đồng chí giữ chức vụ Tổng Bí thư Ban Chấp hành Trung ương Đảng khóa XIV là đồng chí:", options: ["Đồng chí Phạm Minh Chính", "Đồng chí Tô Lâm", "Đồng chí Trần Sỹ Thanh", "Đồng chí Trần Văn Bắc"], correct: 1, p: 10 },
+            { q: "Trong nhiệm kỳ Đại hội XIV đã đề ra bao nhiêu nhiệm vụ trọng tâm:", options: ["4 nhiệm vụ trọng tâm", "5 nhiệm vụ trọng tâm", "6 nhiệm vụ trọng tâm", "7 nhiệm vụ trọng tâm"], correct: 2, p: 10 },
+            { q: "Trong nhiệm kỳ Đại hội XIV của Đảng cần tập trung vào mấy đột phá chiến lược?", options: ["1 đột phá chiến lược", "2 đột phá chiến lược", "3 đột phá chiến lược", "4 đột phá chiến lược"], correct: 2, p: 10 }
         ];
 
         const stage3Questions = [
-            { q: "Theo đồng chí, vai trò nêu gương của đảng viên trong trường học cần thể hiện thế nào?" },
-            { q: "Từ truyền thống 96 năm của Đảng, đồng chí rút ra bài học gì cho bản thân?" },
-            { q: "Đảng viên cần làm gì để xây dựng chi bộ trong sạch vững mạnh?" },
-            { q: "Cách nâng cao chất lượng sinh hoạt chi bộ theo Chỉ thị 50?" },
-            { q: "Cam kết một việc làm cụ thể hưởng ứng kỷ niệm 96 năm ngày thành lập Đảng." }
+            { q: "Theo đồng chí, trong giai đoạn hiện nay, vai trò nêu gương của người đảng viên trong trường tiểu học cần được thể hiện rõ nhất ở nội dung nào?", p: 0 },
+            { q: "Từ truyền thống 96 năm của Đảng, đồng chí rút ra bài học gì cho bản thân trong thực hiện nhiệm vụ được giao?", p: 0 },
+            { q: "Là đảng viên, đồng chí cần làm gì để góp phần xây dựng chi bộ trong sạch, vững mạnh ngay từ những việc nhỏ hằng ngày?", p: 0 },
+            { q: "Theo đồng chí, mỗi đảng viên cần làm gì để nâng cao chất lượng sinh hoạt chi bộ trong thời gian tới?", p: 0 },
+            { q: "Đồng chí cam kết một việc làm cụ thể của bản thân trong năm học này để chào mừng thành công Đại hội XIV.", p: 0 }
         ];
 
-        let myRole = '', myTeamIdx = -1, currentStage = 1, currentQ = -1, scores = [0, 0, 0];
-        const teamNames = ["ĐỘI TIÊN PHONG", "ĐỘI SÁNG TẠO", "ĐỘI QUYẾT THẮNG"];
+        const tieBreakQuestions = [
+            { q: "Câu hỏi phụ 1: Ai là Tổng Bí thư đầu tiên của Đảng Cộng sản Việt Nam?", options: ["Hồ Chí Minh", "Trần Phú", "Lê Hồng Phong", "Nguyễn Văn Cừ"], correct: 1, p: 5 },
+            { q: "Câu hỏi phụ 2: Tác phẩm 'Đường Kách mệnh' là của ai?", options: ["Phan Bội Châu", "Phan Chu Trinh", "Nguyễn Ái Quốc", "Trần Phú"], correct: 2, p: 5 }
+        ];
 
-        function selectRole(role, idx) {
-            myRole = role;
-            document.getElementById('role-selection').classList.add('hidden');
-            if(role === 'admin') {
-                document.getElementById('setup-screen').classList.remove('hidden');
-                listenBuzzerAdmin();
-            } else {
-                myTeamIdx = idx;
-                document.getElementById('mobile-buzzer-ui').classList.remove('hidden');
-                document.getElementById('player-team-name').innerText = teamNames[idx];
-                listenBuzzerPlayer();
-            }
-        }
+        let currentStage = 1, questions = stage1Questions, currentQ = -1;
+        let scores = [0, 0, 0], lockedBuzzer = true, winnerIndex = null, groupStatus = [true, true, true];
+        const teamNames = ["ĐỘI TIÊN PHONG", "ĐỘI SÁNG TẠO", "ĐỘI QUYẾT THẮNG"];
 
         function setupGroups() {
             let names = document.getElementById('name-input').value.split(/[\n,]+/).map(n => n.trim()).filter(n => n !== "");
@@ -183,137 +138,161 @@
             let groups = [[], [], []];
             names.forEach((n, i) => groups[i % 3].push(n));
             groups.forEach((g, i) => document.getElementById(`mem-${i}`).innerHTML = g.join(", "));
-            document.getElementById('setup-screen').classList.add('hidden');
-            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
             nextQuestion();
         }
 
         function nextQuestion() {
             currentQ++;
-            let qs = (currentStage === 1) ? stage1Questions : stage3Questions;
-            if (currentQ >= qs.length) {
+            if (currentQ >= questions.length) {
                 if(currentStage === 1) { goToStage2(); return; }
-                alert("HỘI THI KẾT THÚC!"); return;
+                if(currentStage === 3 || currentStage === 4) { checkFinalResult(); return; }
+                return;
             }
-            adminResetBuzzer();
-            const q = qs[currentQ];
-            document.getElementById('question-text').innerText = `Câu ${currentQ+1}: ${q.q}`;
+            resetRound();
+            const q = questions[currentQ];
+            document.getElementById('question-text').innerText = (currentStage === 3 ? "TỰ LUẬN: " : (currentStage === 4 ? "CÂU PHỤ: " : `Câu ${currentQ+1}: `)) + q.q;
+            
             const grid = document.getElementById('options-grid');
             grid.innerHTML = '';
-            if(currentStage === 1) {
+            if(currentStage === 1 || currentStage === 4) {
                 q.options.forEach((opt, idx) => {
-                    grid.innerHTML += `<div class="option" id="opt-${idx}">${String.fromCharCode(65+idx)}. ${opt}</div>`;
+                    grid.innerHTML += `<div class="option" id="opt-${idx}" onclick="handleSelection(${idx})">${String.fromCharCode(65+idx)}. ${opt}</div>`;
                 });
             } else {
-                grid.innerHTML = '<p style="font-size:1.5em; color:blue">Đội giành chuông trả lời miệng. Giám khảo chấm điểm trên máy tính.</p>';
+                grid.innerHTML = '<p style="font-style: italic; color:#666;">Đội giành chuông sẽ trả lời miệng. Giám khảo nhập điểm khi hoàn thành.</p>';
             }
         }
 
-        // --- ADMIN LOGIC ---
-        function listenBuzzerAdmin() {
-            db.ref('buzzer').on('value', (snap) => {
-                const data = snap.val();
-                if(data) {
-                    document.getElementById('snd-buzzer').play();
-                    document.getElementById(`card-${data.team}`).classList.add('active');
-                    document.getElementById('buzzer-status').innerText = `🔔 ${data.name.toUpperCase()} ĐÃ GIÀNH QUYỀN!`;
-                    if(currentStage === 3) document.getElementById('score-input-zone').classList.remove('hidden');
-                } else {
-                    for(let i=0; i<3; i++) document.getElementById(`card-${i}`).classList.remove('active');
-                    document.getElementById('buzzer-status').innerText = "ĐANG ĐỢI TÍN HIỆU...";
-                    document.getElementById('score-input-zone').classList.add('hidden');
-                }
-            });
+        function resetRound() {
+            groupStatus = [true, true, true]; 
+            winnerIndex = null; 
+            lockedBuzzer = false;
+            document.getElementById('score-input-zone').style.display = 'none';
+            document.getElementById('buzzer-status').innerText = "MỜI CÁC ĐỘI SẴN SÀNG CHUÔNG...";
+            for(let i=0; i<3; i++) document.getElementById(`card-${i}`).className = 'group-card';
+        }
 
-            db.ref('answer').on('value', (snap) => {
-                const ansData = snap.val();
-                if(ansData && currentStage === 1) {
-                    const q = stage1Questions[currentQ];
-                    const isCorrect = ansData.ansIdx === q.correct;
+        // --- XỬ LÝ BẤM CHUÔNG (Chuột trái, giữa, phải) ---
+        window.addEventListener('mousedown', (e) => {
+            if (lockedBuzzer) return;
+            let gIdx = (e.button === 0) ? 0 : (e.button === 1) ? 1 : (e.button === 2) ? 2 : -1;
+            
+            if (gIdx !== -1 && groupStatus[gIdx]) {
+                lockedBuzzer = true; 
+                winnerIndex = gIdx;
+                document.getElementById('snd-buzzer').play();
+                document.getElementById(`card-${gIdx}`).classList.add('active');
+                document.getElementById('buzzer-status').innerText = `🔔 ĐỘI ${teamNames[gIdx]} GIÀNH QUYỀN TRẢ LỜI!`;
+                
+                if(currentStage === 3) {
+                    document.getElementById('score-input-zone').style.display = 'block';
+                } else {
+                    document.querySelectorAll('.option').forEach(el => el.classList.add('enabled'));
+                }
+            }
+        });
+
+        // --- XỬ LÝ CHỌN ĐÁP ÁN (Phím A, B, C, D) ---
+        window.addEventListener('keydown', (e) => {
+            if (winnerIndex === null || (currentStage !== 1 && currentStage !== 4)) return;
+            let key = e.key.toUpperCase();
+            let aIdx = (key === "A") ? 0 : (key === "B") ? 1 : (key === "C") ? 2 : (key === "D") ? 3 : -1;
+            if (aIdx !== -1) handleSelection(aIdx);
+        });
+
+        function handleSelection(idx) {
+            if (winnerIndex === null) return;
+            const q = questions[currentQ];
+            const btn = document.getElementById(`opt-${idx}`);
+            
+            if (idx === q.correct) {
+                // ĐÚNG
+                document.getElementById('snd-correct').play();
+                btn.classList.add('correct');
+                scores[winnerIndex] += q.p;
+                updateScores();
+                document.getElementById('buzzer-status').innerText = `✅ CHÍNH XÁC! +${q.p} ĐIỂM.`;
+                setTimeout(nextQuestion, 2000);
+            } else {
+                // SAI
+                document.getElementById('snd-wrong').play();
+                btn.classList.add('wrong');
+                
+                // Loại đội vừa trả lời sai
+                groupStatus[winnerIndex] = false;
+                document.getElementById(`card-${winnerIndex}`).className = 'group-card disabled';
+                
+                // Kiểm tra xem còn đội nào chưa trả lời không
+                if (groupStatus.includes(true)) {
+                    winnerIndex = null; 
+                    lockedBuzzer = false; // Mở lại chuông cho các đội còn lại
+                    document.getElementById('buzzer-status').innerText = "SAI RỒI! CÁC ĐỘI CÒN LẠI TIẾP TỤC BẤM CHUÔNG...";
+                    document.querySelectorAll('.option').forEach(el => el.classList.remove('enabled'));
+                    // Giữ nguyên các option đỏ (sai) để đội sau không chọn lại
+                } else {
+                    // Cả 3 đội đều sai
                     document.getElementById(`opt-${q.correct}`).classList.add('correct');
-                    if(!isCorrect) document.getElementById(`opt-${ansData.ansIdx}`).classList.add('wrong');
-                    
-                    if(isCorrect) {
-                        scores[ansData.teamIdx] += 10;
-                        updateScoresDisplay();
-                        document.getElementById('buzzer-status').innerText = `✅ ĐÚNG! +10 ĐIỂM CHO ${teamNames[ansData.teamIdx]}`;
-                    } else {
-                        document.getElementById('buzzer-status').innerText = `❌ RẤT TIẾC, ĐỘI ${teamNames[ansData.teamIdx]} SAI RỒI!`;
-                    }
-                    setTimeout(() => { adminResetBuzzer(); nextQuestion(); }, 3500);
+                    document.getElementById('buzzer-status').innerText = "CẢ 3 ĐỘI ĐỀU SAI! ĐÁP ÁN ĐÚNG LÀ " + String.fromCharCode(65 + q.correct);
+                    setTimeout(nextQuestion, 3000);
                 }
-            });
+            }
         }
 
-        // --- PLAYER LOGIC ---
-        function playerPressBuzzer() {
-            db.ref('buzzer').transaction((cur) => {
-                if (cur === null) return { team: myTeamIdx, name: teamNames[myTeamIdx] };
-                return;
-            });
-        }
-
-        function playerSubmitAnswer(idx) {
-            db.ref('answer').set({ teamIdx: myTeamIdx, ansIdx: idx, time: Date.now() });
-        }
-
-        function listenBuzzerPlayer() {
-            db.ref('buzzer').on('value', (snap) => {
-                const data = snap.val();
-                const btn = document.getElementById('buzzer-btn');
-                const bzZone = document.getElementById('p-buzzer-zone');
-                const anZone = document.getElementById('p-answer-zone');
-
-                if(data !== null) {
-                    btn.disabled = true;
-                    if(data.team === myTeamIdx) {
-                        document.getElementById('player-msg').innerText = "BẠN ĐÃ GIÀNH QUYỀN TRẢ LỜI!";
-                        if(currentStage === 1) { bzZone.classList.add('hidden'); anZone.classList.remove('hidden'); }
-                    } else {
-                        document.getElementById('player-msg').innerText = "ĐỘI KHÁC ĐÃ GIÀNH QUYỀN!";
-                    }
-                } else {
-                    btn.disabled = false;
-                    bzZone.classList.remove('hidden');
-                    anZone.classList.add('hidden');
-                    document.getElementById('player-msg').innerText = "SẴN SÀNG!";
-                }
-            });
-        }
-
-        function adminResetBuzzer() { db.ref('buzzer').set(null); db.ref('answer').set(null); }
-        function updateScoresDisplay() { scores.forEach((s, i) => document.getElementById(`score-${i}`).innerText = s); }
         function confirmEssayScore() {
-            let val = parseInt(document.getElementById('judge-score').value);
-            db.ref('buzzer').once('value', (snap) => {
-                if(snap.val()){
-                    scores[snap.val().team] += val;
-                    updateScoresDisplay();
-                    nextQuestion();
-                }
-            });
-        }
-
-        function goToStage2() {
-            currentStage = 2;
-            document.getElementById('game-screen').classList.add('hidden');
-            document.getElementById('video-screen').classList.remove('hidden');
-            let vid = document.getElementById('video-filename').value;
-            document.getElementById('video-container').innerHTML = `<video width="100%" height="500" controls autoplay><source src="${vid}" type="video/mp4"></video>`;
-        }
-
-        function goToStage3() {
-            currentStage = 3; currentQ = -1;
-            document.getElementById('video-screen').classList.add('hidden');
-            document.getElementById('game-screen').classList.remove('hidden');
+            let val = parseInt(document.getElementById('judge-score').value) || 0;
+            scores[winnerIndex] += val;
+            updateScores();
             nextQuestion();
         }
 
-        window.addEventListener('keydown', (e) => {
-            if(myRole !== 'admin') return;
-            if(e.key === 'r' || e.key === 'R') adminResetBuzzer();
-            if(e.key === 'n' || e.key === 'N') nextQuestion();
-        });
+        function updateScores() { scores.forEach((s, i) => document.getElementById(`score-${i}`).innerText = s); }
+
+        function goToStage2() {
+            currentStage = 2;
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('video-screen').style.display = 'block';
+            let vid = document.getElementById('video-filename').value;
+            document.getElementById('video-container').innerHTML = `<video id="v" width="100%" height="450" controls autoplay><source src="${vid}" type="video/mp4"></video>`;
+        }
+
+        function goToStage3() {
+            if(document.getElementById('v')) document.getElementById('v').pause();
+            currentStage = 3; questions = stage3Questions; currentQ = -1;
+            document.getElementById('video-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            document.getElementById('stage-label').innerHTML = `<b>CHẶNG 3: TIẾP BƯỚC NIỀM TIN</b><br><span class="sub-label">(Liên hệ trách nhiệm và cam kết của đảng viên)</span>`;
+            nextQuestion();
+        }
+
+        function checkFinalResult() {
+            let maxScore = Math.max(...scores);
+            let winners = scores.reduce((a, e, i) => (e === maxScore) ? a.concat(i) : a, []);
+            if (winners.length > 1 && currentStage !== 4) {
+                startTieBreak();
+            } else {
+                showFinalWinner();
+            }
+        }
+
+        function startTieBreak() {
+            currentStage = 4; questions = tieBreakQuestions; currentQ = -1;
+            document.getElementById('stage-label').innerHTML = `<b style="color:var(--yellow-star);">CÂU HỎI PHỤ</b>`;
+            alert("ĐANG CÓ ĐỘI BẰNG ĐIỂM! BẮT ĐẦU PHẦN THI PHỤ.");
+            nextQuestion();
+        }
+
+        function showFinalWinner() {
+            let winIdx = scores.indexOf(Math.max(...scores));
+            document.getElementById('quiz-container').innerHTML = `
+                <h1 style="color:var(--red-flag); margin-bottom: 10px;">HỘI THI KẾT THÚC</h1>
+                <h2 style="color:#000; font-size: 2.2em; margin: 10px 0;">QUÁN QUÂN: ${teamNames[winIdx]}</h2>
+                <p style="font-size: 1.5em; font-weight: bold; color: #333;">TỔNG ĐIỂM: ${scores[winIdx]}</p>
+            `;
+            document.getElementById('buzzer-status').innerText = "XIN CHÚC MỪNG CHIẾN THẮNG!";
+            document.getElementById('snd-victory').play();
+        }
     </script>
 </body>
 </html>
