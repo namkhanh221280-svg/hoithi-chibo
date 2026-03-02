@@ -16,14 +16,13 @@
         .hidden { display: none !important; }
         .party-flag { position: absolute; top: 15px; left: 15px; width: 150px; z-index: 100; filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.5)); }
         
-        /* Giao diện Setup */
         #setup-screen, #role-selection { 
             position: relative; z-index: 101; background: white; color: #333; 
             width: 85%; max-width: 600px; margin: 50px auto; padding: 25px; 
             border-radius: 15px; border: 4px solid var(--yellow-star); 
         }
 
-        /* Giao diện Nút Bấm iPad */
+        /* iPad UI */
         #mobile-buzzer-ui { height: 90vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .big-buzzer { 
             width: 280px; height: 280px; border-radius: 50%; border: 15px solid white;
@@ -31,20 +30,26 @@
             font-size: 2.5em; font-weight: bold; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
             transition: 0.1s;
         }
-        .big-buzzer:active { transform: scale(0.9); }
         .big-buzzer:disabled { background: #555; opacity: 0.3; cursor: not-allowed; border-color: #888; }
+        
+        /* Grid đáp án cho iPad */
+        .mobile-options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 90%; margin-top: 20px; }
+        .mobile-opt-btn { 
+            padding: 40px 10px; font-size: 2em; font-weight: bold; color: white; border: 5px solid white; border-radius: 15px; 
+        }
+        .m-a { background: #2980b9; } .m-b { background: #27ae60; }
+        .m-c { background: #f39c12; } .m-d { background: #8e44ad; }
 
-        /* Giao diện Game (Giữ nguyên style của đồng chí) */
+        /* Game Screen Style */
         .score-board { display: flex; justify-content: center; gap: 15px; margin: 20px 0; flex-wrap: wrap; }
         .group-card { background: rgba(255, 255, 255, 0.15); border: 2px solid var(--yellow-star); padding: 15px; border-radius: 12px; width: 220px; transition: 0.3s; }
         .group-card.active { background: var(--yellow-star); color: var(--red-flag); transform: scale(1.1); box-shadow: 0 0 30px var(--yellow-star); }
-        .group-card.disabled { opacity: 0.2; filter: grayscale(1); }
         
         #quiz-container { background: #fff; color: #333; width: 90%; max-width: 850px; margin: 0 auto; padding: 25px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
         .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
         .option { padding: 20px; background: #f8f9fa; border: 2px solid #ddd; border-radius: 10px; font-size: 1.2em; font-weight: bold; }
-        .option.correct { background: #27ae60 !important; color: #fff; }
-        .option.wrong { background: #e74c3c !important; color: #fff; }
+        .option.correct { background: #27ae60 !important; color: #fff; border-color: #2ecc71; }
+        .option.wrong { background: #e74c3c !important; color: #fff; border-color: #c0392b; }
         .btn-red { background: var(--red-flag); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px; }
     </style>
 </head>
@@ -71,13 +76,23 @@
 
     <div id="mobile-buzzer-ui" class="hidden">
         <h1 id="player-team-name" style="color:var(--yellow-star)">ĐỘI CỦA BẠN</h1>
-        <button id="buzzer-btn" class="big-buzzer" onclick="playerPressBuzzer()">BẤM CHUÔNG</button>
+        <div id="p-buzzer-zone">
+            <button id="buzzer-btn" class="big-buzzer" onclick="playerPressBuzzer()">BẤM CHUÔNG</button>
+        </div>
+        <div id="p-answer-zone" class="hidden">
+            <h2 style="color:white">CHỌN ĐÁP ÁN:</h2>
+            <div class="mobile-options-grid">
+                <button class="mobile-opt-btn m-a" onclick="playerSubmitAnswer(0)">A</button>
+                <button class="mobile-opt-btn m-b" onclick="playerSubmitAnswer(1)">B</button>
+                <button class="mobile-opt-btn m-c" onclick="playerSubmitAnswer(2)">C</button>
+                <button class="mobile-opt-btn m-d" onclick="playerSubmitAnswer(3)">D</button>
+            </div>
+        </div>
         <p id="player-msg" style="margin-top:20px; font-size: 1.2em;"></p>
     </div>
 
     <div id="game-screen" class="hidden">
         <h1 id="main-title" style="color: var(--yellow-star); text-shadow: 2px 2px 5px #000;">SINH HOẠT CHUYÊN ĐỀ ONLINE</h1>
-        
         <div class="score-board">
             <div id="card-0" class="group-card"><strong id="name-0">ĐỘI TIÊN PHONG</strong><div id="score-0" style="font-size:2em">0</div><div id="mem-0" style="font-size:0.7em"></div></div>
             <div id="card-1" class="group-card"><strong id="name-1">ĐỘI SÁNG TẠO</strong><div id="score-1" style="font-size:2em">0</div><div id="mem-1" style="font-size:0.7em"></div></div>
@@ -87,9 +102,9 @@
         <div id="quiz-container">
             <div id="question-text" style="font-size:1.6em; font-weight:bold; color:var(--red-flag); line-height: 1.4;"></div>
             <div class="options-grid" id="options-grid"></div>
-            <div id="score-input-zone" class="hidden">
+            <div id="score-input-zone" class="hidden" style="margin-top:15px">
                 <input type="number" id="judge-score" value="10" style="padding:10px; width:60px">
-                <button onclick="confirmEssayScore()" class="btn-red">XÁC NHẬN ĐIỂM</button>
+                <button onclick="confirmEssayScore()" class="btn-red">XÁC NHẬN ĐIỂM TỰ LUẬN</button>
             </div>
             <button id="reset-buzzer-btn" onclick="adminResetBuzzer()" class="btn-red" style="margin-top:20px; background:#2980b9">MỞ LẠI CHUÔNG</button>
         </div>
@@ -105,7 +120,6 @@
     <audio id="snd-buzzer" src="https://assets.mixkit.co/active_storage/sfx/2962/2962-preview.mp3"></audio>
 
     <script>
-        // --- CẤU HÌNH FIREBASE CỦA ĐỒNG CHÍ ---
         const firebaseConfig = {
             apiKey: "AIzaSyCr-SumbfkNMGbYkQ5hL9P8d86hGvBC1AI",
             authDomain: "hoithichibo.firebaseapp.com",
@@ -118,7 +132,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- DỮ LIỆU CÂU HỎI (GIỮ NGUYÊN TỪ CODE GỐC) ---
         const stage1Questions = [
             { q: "Đảng Cộng sản Việt Nam được thành lập vào ngày, tháng, năm nào?", options: ["03/02/1929", "19/05/1930", "03/02/1930", "02/09/1945"], correct: 2, p: 10 },
             { q: "Người sáng lập và rèn luyện Đảng Cộng sản Việt Nam là ai?", options: ["Trường Chinh", "Võ Nguyên Giáp", "Tôn Đức Thắng", "Hồ Chí Minh"], correct: 3, p: 10 },
@@ -145,7 +158,6 @@
             { q: "Cam kết một việc làm cụ thể hưởng ứng kỷ niệm 96 năm ngày thành lập Đảng.", p: 0 }
         ];
 
-        // --- LOGIC XỬ LÝ ---
         let myRole = '', myTeamIdx = -1, currentStage = 1, currentQ = -1;
         let scores = [0, 0, 0];
         const teamNames = ["ĐỘI TIÊN PHONG", "ĐỘI SÁNG TẠO", "ĐỘI QUYẾT THẮNG"];
@@ -170,7 +182,6 @@
             let groups = [[], [], []];
             names.forEach((n, i) => groups[i % 3].push(n));
             groups.forEach((g, i) => document.getElementById(`mem-${i}`).innerHTML = g.join(", "));
-            
             document.getElementById('setup-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             nextQuestion();
@@ -178,14 +189,13 @@
 
         function nextQuestion() {
             currentQ++;
-            let questions = (currentStage === 1) ? stage1Questions : stage3Questions;
-            if (currentQ >= questions.length) {
+            let qs = (currentStage === 1) ? stage1Questions : stage3Questions;
+            if (currentQ >= qs.length) {
                 if(currentStage === 1) { goToStage2(); return; }
                 alert("HỘI THI KẾT THÚC!"); return;
             }
-            
             adminResetBuzzer();
-            const q = questions[currentQ];
+            const q = qs[currentQ];
             document.getElementById('question-text').innerText = `Câu ${currentQ+1}: ${q.q}`;
             const grid = document.getElementById('options-grid');
             grid.innerHTML = '';
@@ -194,21 +204,11 @@
                     grid.innerHTML += `<div class="option" id="opt-${idx}">${String.fromCharCode(65+idx)}. ${opt}</div>`;
                 });
             } else {
-                grid.innerHTML = '<p>Đội giành chuông trả lời miệng. Giám khảo chấm điểm.</p>';
+                grid.innerHTML = '<p>Đội giành chuông trả lời miệng. Giám khảo chấm điểm trên máy tính.</p>';
             }
         }
 
-        // --- FIREBASE INTERACTION ---
-
-        // Người chơi bấm chuông
-        function playerPressBuzzer() {
-            db.ref('buzzer').transaction((current) => {
-                if (current === null) return { team: myTeamIdx, name: teamNames[myTeamIdx] };
-                return;
-            });
-        }
-
-        // Admin lắng nghe chuông
+        // --- FIREBASE ADMIN LOGIC ---
         function listenBuzzerAdmin() {
             db.ref('buzzer').on('value', (snap) => {
                 const data = snap.val();
@@ -223,17 +223,72 @@
                     document.getElementById('score-input-zone').classList.add('hidden');
                 }
             });
+
+            // Lắng nghe đáp án từ iPad (Chỉ áp dụng Stage 1)
+            db.ref('answer').on('value', (snap) => {
+                const ansData = snap.val();
+                if(ansData && currentStage === 1) {
+                    const correctIdx = stage1Questions[currentQ].correct;
+                    const isCorrect = ansData.ansIdx === correctIdx;
+                    
+                    // Hiển thị hiệu ứng trên màn hình chính
+                    document.getElementById(`opt-${correctIdx}`).classList.add('correct');
+                    if(!isCorrect) document.getElementById(`opt-${ansData.ansIdx}`).classList.add('wrong');
+                    
+                    if(isCorrect) {
+                        scores[ansData.teamIdx] += 10;
+                        updateScoresDisplay();
+                        document.getElementById('buzzer-status').innerText = `✅ ĐỘI ${teamNames[ansData.teamIdx]} ĐÚNG! (+10đ)`;
+                    } else {
+                        document.getElementById('buzzer-status').innerText = `❌ ĐỘI ${teamNames[ansData.teamIdx]} SAI!`;
+                    }
+                    
+                    // Tự động qua câu mới sau 2.5 giây
+                    setTimeout(() => {
+                        db.ref('answer').set(null);
+                        nextQuestion();
+                    }, 2500);
+                }
+            });
         }
 
-        // Người chơi lắng nghe trạng thái khóa nút
+        // --- FIREBASE PLAYER LOGIC ---
+        function playerPressBuzzer() {
+            db.ref('buzzer').transaction((current) => {
+                if (current === null) return { team: myTeamIdx, name: teamNames[myTeamIdx] };
+                return;
+            });
+        }
+
+        function playerSubmitAnswer(idx) {
+            db.ref('answer').set({ teamIdx: myTeamIdx, ansIdx: idx });
+            document.getElementById('p-answer-zone').classList.add('hidden');
+            document.getElementById('p-buzzer-zone').classList.remove('hidden');
+        }
+
         function listenBuzzerPlayer() {
             db.ref('buzzer').on('value', (snap) => {
+                const data = snap.val();
                 const btn = document.getElementById('buzzer-btn');
-                if(snap.val() !== null) {
+                const bzZone = document.getElementById('p-buzzer-zone');
+                const anZone = document.getElementById('p-answer-zone');
+
+                if(data !== null) {
                     btn.disabled = true;
-                    document.getElementById('player-msg').innerText = snap.val().team === myTeamIdx ? "BẠN ĐÃ BẤM!" : "ĐỘI KHÁC ĐÃ BẤM!";
+                    if(data.team === myTeamIdx) {
+                        document.getElementById('player-msg').innerText = "BẠN ĐÃ GIÀNH QUYỀN!";
+                        // Nếu là Stage 1 thì mới hiện bảng chọn A,B,C,D
+                        if(currentStage === 1) {
+                            bzZone.classList.add('hidden');
+                            anZone.classList.remove('hidden');
+                        }
+                    } else {
+                        document.getElementById('player-msg').innerText = "ĐỘI KHÁC ĐÃ BẤM!";
+                    }
                 } else {
                     btn.disabled = false;
+                    bzZone.classList.remove('hidden');
+                    anZone.classList.add('hidden');
                     document.getElementById('player-msg').innerText = "HÃY SẴN SÀNG!";
                 }
             });
@@ -241,6 +296,7 @@
 
         function adminResetBuzzer() {
             db.ref('buzzer').set(null);
+            db.ref('answer').set(null);
         }
 
         function confirmEssayScore() {
@@ -271,14 +327,12 @@
             document.getElementById('game-screen').classList.remove('hidden');
             nextQuestion();
         }
-        
-        // Hỗ trợ phím tắt cho Admin
+
         window.addEventListener('keydown', (e) => {
             if(myRole !== 'admin') return;
             if(e.key === 'r' || e.key === 'R') adminResetBuzzer();
             if(e.key === 'n' || e.key === 'N') nextQuestion();
         });
-
     </script>
 </body>
 </html>
