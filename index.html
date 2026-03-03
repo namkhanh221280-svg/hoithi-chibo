@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Đấu Trường Tri Thức - Sinh Hoạt Chi Bộ</title>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <style>
+        :root { --red-flag: #da251d; --yellow-star: #ffff00; --gold: #ffd700; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #da251d 0%, #a31a14 100%); color: #fff; text-align: center; margin: 0; padding: 10px; min-height: 100vh; overflow-x: hidden; }
+        .hidden { display: none !important; }
+        
+        /* Header & Logo */
+        .logo-vn { width: 80px; margin-top: 10px; filter: drop-shadow(0 0 10px gold); }
+        
+        /* Giao diện chung */
+        .btn-red { background: var(--red-flag); color: white; border: 2px solid var(--yellow-star); padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px; transition: 0.3s; }
+        .btn-red:hover { background: var(--yellow-star); color: var(--red-flag); }
+        
+        /* Giao diện Đội chơi */
+        .big-buzzer { width: 280px; height: 280px; border-radius: 50%; border: 10px solid white; background: radial-gradient(circle, #ff4d4d, #b30000); color: white; font-size: 2em; font-weight: bold; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .big-buzzer:active { transform: scale(0.95); }
+        .mobile-opt { padding: 30px; font-size: 2.5em; color: white; border: 4px solid white; border-radius: 15px; margin: 10px; cursor: pointer; width: 40%; }
+
+        /* Giao diện Admin */
+        .score-board { display: flex; justify-content: center; gap: 15px; margin: 20px 0; flex-wrap: wrap; }
+        .group-card { background: rgba(255, 255, 255, 0.15); border: 2px solid var(--yellow-star); padding: 15px; border-radius: 12px; width: 250px; transition: 0.4s; position: relative; }
+        .group-card.active { background: var(--yellow-star); color: var(--red-flag); transform: scale(1.1); box-shadow: 0 0 30px var(--yellow-star); z-index: 10; }
+        .member-list { font-size: 0.8em; margin-top: 8px; border-top: 1px dashed rgba(255,255,255,0.3); pt: 5px; text-align: left; }
+        
+        #quiz-container { background: #fff; color: #333; width: 90%; max-width: 900px; margin: 20px auto; padding: 30px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .option { padding: 15px; background: #f8f9fa; border: 2px solid #ddd; border-radius: 10px; font-size: 1.2em; text-align: left; font-weight: bold; }
+        .option.correct { background: #27ae60 !important; color: #fff; border-color: #2ecc71; }
+
+        /* Màn hình kết thúc */
+        #winner-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+        .trophy { font-size: 100px; animation: bounce 1s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+    </style>
+</head>
+<body>
+
+    <img src="cd-removebg-preview.png" class="logo-vn" alt="Cờ Đảng">
+
+    <div id="role-selection" style="background: white; color: #333; padding: 40px; margin: 30px auto; width: 350px; border-radius: 20px;">
+        <h2 style="color:var(--red-flag)">ĐẤU TRƯỜNG TRI THỨC</h2>
+        <button class="btn-red" onclick="selectRole('admin')">MÀN HÌNH CHÍNH (SMARTPHONE/IPAD/PC)</button>
+        <hr>
+        <p>Chọn Đội (iPad/Phone):</p>
+        <button class="btn-red" onclick="selectRole('player', 0)">ĐỘI TIÊN PHONG</button>
+        <button class="btn-red" onclick="selectRole('player', 1)">ĐỘI SÁNG TẠO</button>
+        <button class="btn-red" onclick="selectRole('player', 2)">ĐỘI QUYẾT THẮNG</button>
+    </div>
+
+    <div id="admin-screen" class="hidden">
+        <h1 id="main-title" style="color: var(--yellow-star); text-shadow: 2px 2px 5px #000; margin-top: 5px;">SINH HOẠT CHUYÊN ĐỀ</h1>
+        
+        <div id="stage-label">
+            
+			<h1 id="main-title" style="color: var(--yellow-star); text-shadow: 2px 2px 5px #000; margin-top: 5px;">CHẶNG 1: DẤU SON LỊCH SỬ</h1><br>
+            <span class="sub-label">(Ôn lại những mốc son 96 năm của Đảng)</span>
+        </div>
+        
+        <div class="score-board">
+            <div id="card-0" class="group-card">
+                <strong>ĐỘI TIÊN PHONG</strong>
+                <div id="score-0" style="font-size:2.5em">0</div>
+                <div class="member-list">Đ/c: Nam, Khánh, Chi, Tú</div>
+            </div>
+            <div id="card-1" class="group-card">
+                <strong>ĐỘI SÁNG TẠO</strong>
+                <div id="score-1" style="font-size:2.5em">0</div>
+                <div class="member-list">Đ/c: Bình, An, Hoa, Linh</div>
+            </div>
+            <div id="card-2" class="group-card">
+                <strong>ĐỘI QUYẾT THẮNG</strong>
+                <div id="score-2" style="font-size:2.5em">0</div>
+                <div class="member-list">Đ/c: Hùng, Dũng, Sang, Minh</div>
+            </div>
+        </div>
+
+        <div id="video-zone" class="hidden">
+            <video id="main-video" width="85%" controls style="border: 5px solid white; border-radius: 15px;"></video>
+            <br><button class="btn-red" onclick="startStage3()">XEM XONG VIDEO -> SANG CHẶNG 3</button>
+        </div>
+		
+        <div id="quiz-container">
+            <div id="q-text" style="font-size:1.8em; color:var(--red-flag); font-weight:bold; line-height: 1.4;"></div>
+            <div id="options-grid" class="options-grid"></div>
+            
+            <div id="score-input-zone" class="hidden" style="margin-top:20px; border-top:2px solid #eee; padding-top:15px;">
+                <p>Giám khảo cho điểm câu tự luận:</p>
+                <input type="number" id="judge-score" value="20" style="font-size:1.5em; width:100px; text-align:center;">
+                <button class="btn-red" onclick="confirmScore()">XÁC NHẬN ĐIỂM</button>
+            </div>
+        </div>
+
+        <div id="status-msg" style="font-size:1.8em; color:var(--yellow-star); font-weight:bold; margin:20px; height: 1.5em;"></div>
+        <button id="btn-next" class="btn-red" onclick="controlNext()">TIẾP TỤC</button>
+        <button id="btn-tie" class="btn-red hidden" onclick="startTieBreaker()" style="background: orange;">CÂU HỎI PHỤ (PHÂN THẮNG BẠI)</button>
+        <button id="btn-end" class="btn-red hidden" onclick="showWinner()" style="background: #27ae60;">KẾT THÚC HỘI THI</button>
+    </div>
+
+    <div id="player-screen" class="hidden">
+        <h1 id="p-team-name" style="color:var(--yellow-star); font-size: 3em;">...</h1>
+        <div id="p-buzzer-zone">
+            <button id="btn-buzzer" class="big-buzzer" onclick="pressBuzzer()">BẤM CHUÔNG</button>
+        </div>
+        <div id="p-answer-zone" class="hidden">
+            <div style="display: flex; flex-wrap: wrap; justify-content: center;">
+                <button class="mobile-opt" style="background:#2980b9" onclick="submitAns(0)">A</button>
+                <button class="mobile-opt" style="background:#27ae60" onclick="submitAns(1)">B</button>
+                <button class="mobile-opt" style="background:#f39c12" onclick="submitAns(2)">C</button>
+                <button class="mobile-opt" style="background:#8e44ad" onclick="submitAns(3)">D</button>
+            </div>
+        </div>
+        <p id="p-msg" style="font-size: 2.5em; font-weight: bold; margin-top: 30px;"></p>
+    </div>
+
+    <div id="winner-screen" class="hidden">
+        <div class="trophy">🏆</div>
+        <h1 style="color:var(--yellow-star); font-size: 4em; margin: 10px;">QUÁN QUÂN</h1>
+        <h2 id="final-winner-name" style="font-size: 3em; color: white;">...</h2>
+        <div id="final-scores" style="font-size: 1.5em; margin-top: 20px;"></div>
+        <button class="btn-red" onclick="location.reload()">LÀM MỚI HỘI THI</button>
+    </div>
+
+    <audio id="snd-buzzer" src="chon.mp3"></audio>
+    <audio id="snd-correct" src="chondung.mp3"></audio>
+    <audio id="snd-win" src="chienthang.mp3"></audio>
+
+    <script>
+        // Cấu hình Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCr-SumbfkNMGbYkQ5hL9P8d86hGvBC1AI",
+            authDomain: "hoithichibo.firebaseapp.com",
+            databaseURL: "https://hoithichibo-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "hoithichibo",
+            storageBucket: "hoithichibo.firebasestorage.app",
+            messagingSenderId: "209464097119",
+            appId: "1:209464097119:web:a9c78c7275f6854cd91eea"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Dữ liệu câu hỏi
+        const dataQ = {
+            s1: [
+                { q: "Đảng Cộng sản Việt Nam thành lập ngày nào?", options: ["03/02/1929", "19/05/1930", "03/02/1930", "02/09/1945"], correct: 2 },
+            //    { q: "Ai là người sáng lập Đảng ta?", options: ["Trường Chinh", "Võ Nguyên Giáp", "Lê Duẩn", "Hồ Chí Minh"], correct: 3 },
+            //    { q: "Tính đến 2026, Đảng ta tròn bao nhiêu năm tuổi?", options: ["90 năm", "95 năm", "96 năm", "100 năm"], correct: 2 },
+            //    { q: "Phương châm Đại hội XIV là gì?", options: ["Đoàn kết - Dân chủ", "Kỷ cương - Sáng tạo", "Cả 2 ý trên đều đúng", "Đổi mới toàn diện"], correct: 2 }
+            ],
+            s2: [ // Câu hỏi phụ
+                { q: "Câu hỏi phụ: Bản Tuyên ngôn Độc lập được đọc tại đâu?", options: ["Huế", "Hà Nội", "Sài Gòn", "Pác Bó"], correct: 1 }
+            ],
+            s3: [
+                { q: "Theo đồng chí, vai trò nêu gương của đảng viên hiện nay cần thể hiện thế nào?", type: "tl" },
+            //    { q: "Đồng chí cam kết gì để chào mừng thành công Đại hội XIV?", type: "tl" }
+            ]
+        };
+
+        let myRole = '', myIdx = -1, curS = 1, curQ = -1, scores = [0,0,0], groupStatus = [true,true,true], winnerIdx = null;
+        const teamNames = ["ĐỘI TIÊN PHONG", "ĐỘI SÁNG TẠO", "ĐỘI QUYẾT THẮNG"];
+
+        function selectRole(role, idx) {
+            myRole = role; myIdx = idx;
+            document.getElementById('role-selection').classList.add('hidden');
+            if(role === 'admin') {
+                document.getElementById('admin-screen').classList.remove('hidden');
+                initAdmin(); 
+                db.ref().set({ buzzer: null, ans: null, stage: 1, qIdx: -1 });
+                controlNext();
+            } else {
+                document.getElementById('player-screen').classList.remove('hidden');
+                document.getElementById('p-team-name').innerText = teamNames[idx];
+                initPlayer();
+            }
+        }
+
+        function initAdmin() {
+            db.ref('buzzer').on('value', snap => {
+                winnerIdx = snap.val()?.idx;
+                if(winnerIdx !== undefined && winnerIdx !== null) {
+                    document.getElementById('snd-buzzer').play();
+                    document.getElementById(`card-${winnerIdx}`).classList.add('active');
+                    document.getElementById('status-msg').innerText = `🔔 ${teamNames[winnerIdx]} GIÀNH QUYỀN!`;
+                    if(curS === 3) document.getElementById('score-input-zone').classList.remove('hidden');
+                }
+            });
+
+            db.ref('ans').on('value', snap => {
+                const data = snap.val();
+                if(!data || (curS !== 1 && curS !== 2)) return;
+                const list = curS === 1 ? dataQ.s1 : dataQ.s2;
+                if(data.choice === list[curQ].correct) {
+                    scores[data.idx] += 10;
+                    document.getElementById('snd-correct').play();
+                    document.getElementById('status-msg').innerText = "✅ CHÍNH XÁC! +10 ĐIỂM";
+                    document.getElementById(`o-${data.choice}`).classList.add('correct');
+                    setTimeout(controlNext, 2500);
+                } else {
+                    document.getElementById('status-msg').innerText = "❌ SAI RỒI!";
+                    groupStatus[data.idx] = false;
+                    db.ref('buzzer').set(null); db.ref('ans').set(null);
+                    updateUI();
+                }
+            });
+        }
+
+        function controlNext() {
+            curQ++;
+            if(curS === 1 && curQ >= dataQ.s1.length) { startStage2(); return; }
+            if(curS === 3 && curQ >= dataQ.s3.length) { checkFinish(); return; }
+            if(curS === 2 && curQ >= dataQ.s2.length) { checkFinish(); return; }
+            
+            groupStatus = [true, true, true];
+            db.ref().update({ buzzer: null, ans: null, qIdx: curQ, stage: curS });
+            updateUI();
+        }
+
+        function updateUI() {
+            const statusMsg = document.getElementById('status-msg');
+            statusMsg.innerText = "SẴN SÀNG... BẤM CHUÔNG!";
+            document.querySelectorAll('.group-card').forEach(c => c.classList.remove('active'));
+            
+            if(curS === 1 || curS === 2) {
+                const q = curS === 1 ? dataQ.s1[curQ] : dataQ.s2[curQ];
+                document.getElementById('q-text').innerText = `CÂU ${curQ+1}: ${q.q}`;
+                const grid = document.getElementById('options-grid');
+                grid.innerHTML = '';
+                q.options.forEach((opt, i) => grid.innerHTML += `<div class="option" id="o-${i}">${String.fromCharCode(65+i)}. ${opt}</div>`);
+            } else if(curS === 3) {
+                document.getElementById('q-text').innerText = `CÂU HỎI TỰ LUẬN: ${dataQ.s3[curQ].q}`;
+                document.getElementById('options-grid').innerHTML = '<p style="font-style:italic">Đội giành chuông trả lời miệng. Giám khảo chấm điểm trực tiếp.</p>';
+            }
+
+            scores.forEach((s, i) => {
+                document.getElementById(`score-${i}`).innerText = s;
+                document.getElementById(`card-${i}`).className = 'group-card' + (groupStatus[i] ? '' : ' disabled');
+            });
+        }
+
+        function confirmScore() {
+            const pts = parseInt(document.getElementById('judge-score').value);
+            scores[winnerIdx] += pts;
+            document.getElementById('score-input-zone').classList.add('hidden');
+            controlNext();
+        }
+
+        function startStage2() {
+            curS = 2;
+            document.getElementById('stage-title').innerText = "CHẶNG 2: HÀNH TRÌNH VẺ VANG";
+            document.getElementById('quiz-container').classList.add('hidden');
+            document.getElementById('video-zone').classList.remove('hidden');
+            document.getElementById('main-video').src = "video_tu_lieu.mp4"; // Đảm bảo file này tồn tại
+        }
+
+        function startStage3() {
+            curS = 3; curQ = -1;
+            document.getElementById('stage-title').innerText = "CHẶNG 3: TIẾP BƯỚC NIỀM TIN";
+            document.getElementById('video-zone').classList.add('hidden');
+            document.getElementById('quiz-container').classList.remove('hidden');
+            controlNext();
+        }
+
+        function checkFinish() {
+            const maxScore = Math.max(...scores);
+            const counts = scores.filter(s => s === maxScore).length;
+            if(counts > 1) {
+                document.getElementById('status-msg').innerText = "TỈ SỐ HÒA! CẦN CÂU HỎI PHỤ";
+                document.getElementById('btn-tie').classList.remove('hidden');
+                document.getElementById('btn-next').classList.add('hidden');
+            } else {
+                document.getElementById('btn-end').classList.remove('hidden');
+                document.getElementById('btn-next').classList.add('hidden');
+            }
+        }
+
+        function startTieBreaker() {
+            curS = 2; curQ = -1; // Tận dụng data s2 làm câu hỏi phụ
+            document.getElementById('btn-tie').classList.add('hidden');
+            controlNext();
+        }
+
+        function showWinner() {
+            const winIdx = scores.indexOf(Math.max(...scores));
+            document.getElementById('winner-screen').classList.remove('hidden');
+            document.getElementById('final-winner-name').innerText = teamNames[winIdx];
+            document.getElementById('snd-win').play();
+            let details = "";
+            teamNames.forEach((name, i) => details += `${name}: ${scores[i]} điểm<br>`);
+            document.getElementById('final-scores').innerHTML = details;
+        }
+
+        // HÀM CHO NGƯỜI CHƠI (IPAD)
+        function initPlayer() {
+            db.ref().on('value', snap => {
+                const data = snap.val();
+                const bBtn = document.getElementById('btn-buzzer');
+                const pMsg = document.getElementById('p-msg');
+                
+                if(data.buzzer) {
+                    bBtn.disabled = true;
+                    if(data.buzzer.idx === myIdx) {
+                        pMsg.innerText = "MỜI TRẢ LỜI!";
+                        if(data.stage === 1 || data.stage === 2) {
+                            document.getElementById('p-buzzer-zone').classList.add('hidden');
+                            document.getElementById('p-answer-zone').classList.remove('hidden');
+                        }
+                    } else {
+                        pMsg.innerText = "ĐỘI KHÁC ĐÃ BẤM!";
+                        pMsg.style.color = "gray";
+                    }
+                } else {
+                    bBtn.disabled = false;
+                    pMsg.innerText = "SẴN SÀNG!";
+                    pMsg.style.color = "white";
+                    document.getElementById('p-buzzer-zone').classList.remove('hidden');
+                    document.getElementById('p-answer-zone').classList.add('hidden');
+                }
+            });
+        }
+
+        function pressBuzzer() {
+            db.ref('buzzer').transaction(cur => cur === null ? { idx: myIdx } : undefined);
+        }
+
+        function submitAns(choice) {
+            db.ref('ans').set({ idx: myIdx, choice: choice });
+        }
+    </script>
+</body>
+</html>
