@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Đấu Trường Tri Thức - Sinh Hoạt Chi Bộ</title>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <style>
+        :root { --red-flag: #da251d; --yellow-star: #ffff00; }
+        body { 
+            font-family: 'Segoe UI', 'Times New Roman', sans-serif; 
+            background: linear-gradient(135deg, #da251d 0%, #a31a14 100%); 
+            color: #fff; text-align: center; margin: 0; padding: 10px; min-height: 100vh;
+        }
+        .hidden { display: none !important; }
+        .party-flag { position: absolute; top: 15px; left: 15px; width: 150px; z-index: 100; filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.5)); }
+
+        /* Màn hình Setup & Video */
+        #setup-screen, #video-screen, #role-selection { 
+            background: white; color: #333; width: 85%; max-width: 800px; 
+            margin: 30px auto; padding: 25px; border-radius: 15px; border: 4px solid var(--yellow-star); 
+        }
+
+        /* Scoreboard */
+        .score-board { display: flex; justify-content: center; gap: 15px; margin: 20px 0; }
+        .group-card { background: rgba(255, 255, 255, 0.15); border: 2px solid var(--yellow-star); padding: 15px; border-radius: 12px; width: 220px; transition: 0.3s; }
+        .group-card.active { background: var(--yellow-star); color: var(--red-flag); transform: scale(1.1); box-shadow: 0 0 30px var(--yellow-star); }
+        .group-card.disabled { opacity: 0.1; filter: grayscale(1); }
+
+        #stage-label { 
+            color: white; background: rgba(0,0,0,0.4); display: inline-block; 
+            padding: 10px 40px; border-radius: 20px; font-size: 1.3em; font-weight: bold; margin-bottom: 10px;
+        }
+
+        /* Quiz Container */
+        #quiz-container { background: #fff; color: #333; width: 90%; max-width: 850px; margin: 0 auto; padding: 25px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .option { padding: 20px; background: #f8f9fa; border: 2px solid #ddd; border-radius: 10px; font-size: 1.2em; font-weight: bold; }
+        .option.correct { background: #27ae60 !important; color: #fff; }
+        .option.wrong { background: #e74c3c !important; color: #fff; }
+
+        /* iPad Controls */
+        .big-buzzer { width: 250px; height: 250px; border-radius: 50%; border: 10px solid white; background: radial-gradient(circle, #ff4d4d, #b30000); color: white; font-size: 2em; font-weight: bold; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .mobile-opt { padding: 25px; font-size: 2em; color: white; border: none; border-radius: 10px; margin: 10px; width: 40%; font-weight: bold; }
+        
+        .btn-red { background: var(--red-flag); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px; }
+    </style>
+</head>
+<body>
+
+    <img src="cd-removebg-preview.png" alt="Cờ Đảng" class="party-flag">
+
+    <div id="role-selection">
+        <h2 style="color:var(--red-flag)">ĐĂNG NHẬP THIẾT BỊ</h2>
+        <button class="btn-red" onclick="selectRole('admin')">MÁY TÍNH (ADMIN/HIỂN THỊ)</button>
+        <hr>
+        <p>Dành cho iPad các đội:</p>
+        <button class="btn-red" onclick="selectRole('player', 0)">ĐỘI 1 (TIÊN PHONG)</button>
+        <button class="btn-red" onclick="selectRole('player', 1)">ĐỘI 2 (SÁNG TẠO)</button>
+        <button class="btn-red" onclick="selectRole('player', 2)">ĐỘI 3 (QUYẾT THẮNG)</button>
+    </div>
+
+    <div id="setup-screen" class="hidden">
+        <h2 style="color: var(--red-flag);">THIẾT LẬP HỘI THI</h2>
+        <textarea id="name-input" style="width:96%; height:80px; padding: 10px;">Đồng chí Lê Thị Diệu Thúy, Đồng chí Hoàng Tú Anh, Đồng chí Lê Thị Thanh Lĩnh, Đồng chí Đỗ Thị Huế, Đồng chí Đồng Thị Thảo, Đồng chí Nguyễn Thị Hằng, Đồng chí Nguyễn Thị Thanh Châm, Đồng chí Phạm Thị Lan Hương, Đồng chí Đỗ Giang Thanh, Đồng chí Nguyễn Thị Hạnh, Đồng chí Đỗ Hải Linh, Đồng chí Nguyễn Thị Yến, Đồng chí Vũ Hồng Nga, Đồng chí Cao Thị Doan, Đồng chí Bùi Thị Thu Hằng</textarea>
+        <input type="text" id="video-filename" style="width:96%; margin-top:10px; padding: 10px;" value="video_tu_lieu.mp4">
+        <div style="margin-top: 20px;"><button onclick="setupGroups()" class="btn-red">KHAI MẠC SINH HOẠT</button></div>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <h1 id="main-title" style="color: var(--yellow-star); text-shadow: 2px 2px 5px #000;">SINH HOẠT CHUYÊN ĐỀ</h1>
+        <div id="stage-label"><b>CHẶNG 1: DẤU SON LỊCH SỬ</b></div>
+        
+        <div class="score-board">
+            <div id="card-0" class="group-card"><strong id="name-0">ĐỘI TIÊN PHONG</strong><div id="score-0" style="font-size:2em">0</div><div id="mem-0" style="font-size:0.7em"></div></div>
+            <div id="card-1" class="group-card"><strong id="name-1">ĐỘI SÁNG TẠO</strong><div id="score-1" style="font-size:2em">0</div><div id="mem-1" style="font-size:0.7em"></div></div>
+            <div id="card-2" class="group-card"><strong id="name-2">ĐỘI QUYẾT THẮNG</strong><div id="score-2" style="font-size:2em">0</div><div id="mem-2" style="font-size:0.7em"></div></div>
+        </div>
+
+        <div id="quiz-container">
+            <div id="question-text" style="font-size:1.6em; font-weight:bold; color:var(--red-flag);"></div>
+            <div class="options-grid" id="options-grid"></div>
+            <div id="score-input-zone" class="hidden">
+                <p style="font-weight: bold; color: #da251d;">GIÁM KHẢO CHẤM ĐIỂM:</p>
+                <input type="number" id="judge-score" value="10">
+                <button onclick="confirmEssayScore()" class="btn-red">XÁC NHẬN ĐIỂM</button>
+            </div>
+        </div>
+        <div id="buzzer-status" style="font-size:1.8em; margin:20px; color:var(--yellow-star); font-weight:bold;"></div>
+    </div>
+
+    <div id="video-screen" class="hidden">
+        <h2 style="color: var(--red-flag);">CHẶNG 2: HÀNH TRÌNH VẺ VANG</h2>
+        <div id="video-container"></div>
+        <div style="margin-top: 20px;"><button onclick="goToStage3()" class="btn-red">XONG VIDEO -> SANG CHẶNG 3</button></div>
+    </div>
+
+    <div id="player-screen" class="hidden">
+        <h1 id="p-team-name" style="color:var(--yellow-star)">...</h1>
+        <div id="p-buzzer-zone">
+            <button id="btn-buzzer" class="big-buzzer" onclick="pressBuzzer()">BẤM CHUÔNG</button>
+        </div>
+        <div id="p-answer-zone" class="hidden">
+            <button class="mobile-opt" style="background:#2980b9" onclick="submitAns(0)">A</button>
+            <button class="mobile-opt" style="background:#27ae60" onclick="submitAns(1)">B</button><br>
+            <button class="mobile-opt" style="background:#f39c12" onclick="submitAns(2)">C</button>
+            <button class="mobile-opt" style="background:#8e44ad" onclick="submitAns(3)">D</button>
+        </div>
+        <p id="p-status" style="font-size: 1.5em; font-weight: bold; margin-top: 20px;"></p>
+    </div>
+
+    <audio id="snd-buzzer" src="https://assets.mixkit.co/active_storage/sfx/2962/2962-preview.mp3"></audio>
+    <audio id="snd-correct" src="chondung.mp3"></audio>
+    <audio id="snd-wrong" src="https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3"></audio>
+    <audio id="snd-victory" src="chienthang.mp3"></audio>
+
+    <script>
+        // CẤU HÌNH FIREBASE (Giữ nguyên của bạn)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCr-SumbfkNMGbYkQ5hL9P8d86hGvBC1AI",
+            authDomain: "hoithichibo.firebaseapp.com",
+            databaseURL: "https://hoithichibo-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "hoithichibo",
+            storageBucket: "hoithichibo.firebasestorage.app",
+            messagingSenderId: "209464097119",
+            appId: "1:209464097119:web:a9c78c7275f6854cd91eea"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const stage1Questions = [
+            { q: "Đảng Cộng sản Việt Nam được thành lập ngày nào?", options: ["03/02/1929", "19/05/1930", "03/02/1930", "02/09/1945"], correct: 2, p: 10 },
+        //    { q: "Người sáng lập và rèn luyện Đảng ta là ai?", options: ["Trường Chinh", "Võ Nguyên Giáp", "Tôn Đức Thắng", "Hồ Chí Minh"], correct: 3, p: 10 },
+        //    { q: "Hội nghị hợp nhất Đảng tổ chức ở đâu?", options: ["Quảng Châu", "Bắc Kinh", "Hồng Kông", "Hà Nội"], correct: 2, p: 10 },
+        //    { q: "Năm 2026 Đảng ta bao nhiêu năm tuổi?", options: ["90 năm", "95 năm", "96 năm", "100 năm"], correct: 2, p: 10 },
+        //    { q: "Đại hội XIV Đảng đề ra bao nhiêu nhiệm vụ trọng tâm?", options: ["4", "5", "6", "7"], correct: 2, p: 10 }
+        ];
+
+        const stage3Questions = [
+            { q: "Vai trò nêu gương của đảng viên trong trường tiểu học thể hiện rõ nhất ở đâu?", p: 0 },
+        //    { q: "Đồng chí cam kết gì để chào mừng thành công Đại hội XIV?", p: 0 }
+        ];
+
+        const tieBreakQuestions = [
+            { q: "Câu hỏi phụ: Ai là Tổng Bí thư đầu tiên?", options: ["Hồ Chí Minh", "Trần Phú", "Lê Hồng Phong", "Nguyễn Văn Cừ"], correct: 1, p: 1 }
+        ];
+
+        let myRole = '', myIdx = -1;
+        let currentStage = 1, currentQ = -1, scores = [0, 0, 0], groupStatus = [true, true, true], winnerIndex = null;
+        const teamNames = ["ĐỘI TIÊN PHONG", "ĐỘI SÁNG TẠO", "ĐỘI QUYẾT THẮNG"];
+
+        function selectRole(role, idx) {
+            myRole = role; myIdx = idx;
+            document.getElementById('role-selection').classList.add('hidden');
+            if(role === 'admin') {
+                document.getElementById('setup-screen').classList.remove('hidden');
+                initAdmin();
+            } else {
+                document.getElementById('player-screen').classList.remove('hidden');
+                document.getElementById('p-team-name').innerText = teamNames[idx];
+                initPlayer();
+            }
+        }
+
+        // --- LOGIC ADMIN (PC) ---
+        function initAdmin() {
+            db.ref().set({ buzzer: null, ans: null, stage: 1, qIdx: -1 });
+            
+            // Lắng nghe chuông từ iPad
+            db.ref('buzzer').on('value', snap => {
+                let data = snap.val();
+                if(data && winnerIndex === null) {
+                    winnerIndex = data.idx;
+                    document.getElementById('snd-buzzer').play();
+                    document.getElementById(`card-${winnerIndex}`).classList.add('active');
+                    document.getElementById('buzzer-status').innerText = `🔔 ${teamNames[winnerIndex]} GIÀNH QUYỀN!`;
+                    if(currentStage === 3) document.getElementById('score-input-zone').classList.remove('hidden');
+                }
+            });
+
+            // Lắng nghe đáp án từ iPad (Chặng 1 & 4)
+            db.ref('ans').on('value', snap => {
+                let data = snap.val();
+                if(data && (currentStage === 1 || currentStage === 4)) {
+                    handleAnswer(data.choice);
+                }
+            });
+        }
+
+        function setupGroups() {
+            let names = document.getElementById('name-input').value.split(/[\n,]+/).map(n => n.trim()).filter(n => n !== "");
+            names.sort(() => Math.random() - 0.5);
+            let groups = [[], [], []];
+            names.forEach((n, i) => groups[i % 3].push(n));
+            groups.forEach((g, i) => document.getElementById(`mem-${i}`).innerHTML = g.join(", "));
+            
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            currentQ++;
+            let questions = (currentStage === 1) ? stage1Questions : (currentStage === 3 ? stage3Questions : tieBreakQuestions);
+            
+            if (currentQ >= questions.length) {
+                if(currentStage === 1) { goToStage2(); return; }
+                if(currentStage === 3 || currentStage === 4) { checkFinalResult(); return; }
+                return;
+            }
+
+            winnerIndex = null;
+            groupStatus = [true, true, true];
+            db.ref().update({ buzzer: null, ans: null, qIdx: currentQ, stage: currentStage });
+            
+            const q = questions[currentQ];
+            document.getElementById('question-text').innerText = `Câu ${currentQ+1}: ${q.q}`;
+            document.getElementById('buzzer-status').innerText = "MỜI CÁC ĐỘI BẤM CHUÔNG...";
+            document.getElementById('score-input-zone').classList.add('hidden');
+            document.querySelectorAll('.group-card').forEach(c => c.className = 'group-card');
+
+            const grid = document.getElementById('options-grid');
+            grid.innerHTML = '';
+            if(q.options) {
+                q.options.forEach((opt, idx) => {
+                    grid.innerHTML += `<div class="option" id="opt-${idx}">${String.fromCharCode(65+idx)}. ${opt}</div>`;
+                });
+            } else {
+                grid.innerHTML = '<p style="font-style: italic;">Trả lời miệng - Giám khảo chấm điểm.</p>';
+            }
+        }
+
+        function handleAnswer(choiceIdx) {
+            let questions = (currentStage === 1) ? stage1Questions : tieBreakQuestions;
+            const q = questions[currentQ];
+            if(choiceIdx === q.correct) {
+                document.getElementById('snd-correct').play();
+                document.getElementById(`opt-${choiceIdx}`).classList.add('correct');
+                scores[winnerIndex] += q.p;
+                updateScoresDisplay();
+                setTimeout(nextQuestion, 2000);
+            } else {
+                document.getElementById('snd-wrong').play();
+                document.getElementById(`opt-${choiceIdx}`).classList.add('wrong');
+                groupStatus[winnerIndex] = false;
+                document.getElementById(`card-${winnerIndex}`).className = 'group-card disabled';
+                winnerIndex = null;
+                db.ref().update({ buzzer: null, ans: null });
+                document.getElementById('buzzer-status').innerText = "SAI RỒI! MỜI ĐỘI CÒN LẠI...";
+            }
+        }
+
+        function confirmEssayScore() {
+            scores[winnerIndex] += parseInt(document.getElementById('judge-score').value) || 0;
+            updateScoresDisplay();
+            nextQuestion();
+        }
+
+        function updateScoresDisplay() {
+            scores.forEach((s, i) => document.getElementById(`score-${i}`).innerText = s);
+        }
+
+        function goToStage2() {
+            currentStage = 2;
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('video-screen').classList.remove('hidden');
+            let vid = document.getElementById('video-filename').value;
+            document.getElementById('video-container').innerHTML = `<video id="v" width="100%" controls autoplay><source src="${vid}" type="video/mp4"></video>`;
+        }
+
+        function goToStage3() {
+            currentStage = 3; currentQ = -1;
+            document.getElementById('video-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('stage-label').innerText = "CHẶNG 3: TIẾP BƯỚC NIỀM TIN";
+            nextQuestion();
+        }
+
+        function checkFinalResult() {
+            let maxScore = Math.max(...scores);
+            let winners = scores.filter(s => s === maxScore).length;
+            if (winners > 1 && currentStage !== 4) {
+                currentStage = 4; currentQ = -1;
+                alert("Tỉ số hòa! Chuyển sang câu hỏi phụ.");
+                nextQuestion();
+            } else {
+                showFinalWinner();
+            }
+        }
+
+        function showFinalWinner() {
+            let winIdx = scores.indexOf(Math.max(...scores));
+            document.getElementById('quiz-container').innerHTML = `
+                <h1 style="color:var(--red-flag)">QUÁN QUÂN: ${teamNames[winIdx]}</h1>
+                <p style="font-size: 1.5em; color: #333;">TỔNG ĐIỂM: ${scores[winIdx]}</p>
+            `;
+            document.getElementById('snd-victory').play();
+        }
+
+        // --- LOGIC IPAD ---
+        function initPlayer() {
+            db.ref().on('value', snap => {
+                const data = snap.val();
+                if(!data) return;
+                
+                const bZone = document.getElementById('p-buzzer-zone');
+                const aZone = document.getElementById('p-answer-zone');
+                const pStatus = document.getElementById('p-status');
+
+                if(data.buzzer === null) {
+                    bZone.classList.remove('hidden');
+                    aZone.classList.add('hidden');
+                    pStatus.innerText = "SẴN SÀNG BẤM CHUÔNG!";
+                } else if(data.buzzer.idx === myIdx) {
+                    pStatus.innerText = "MỜI BẠN TRẢ LỜI!";
+                    if(data.stage === 1 || data.stage === 4) {
+                        bZone.classList.add('hidden');
+                        aZone.classList.remove('hidden');
+                    }
+                } else {
+                    pStatus.innerText = "ĐỘI KHÁC ĐANG TRẢ LỜI...";
+                    bZone.classList.add('hidden');
+                }
+            });
+        }
+
+        function pressBuzzer() {
+            db.ref('buzzer').transaction(cur => cur === null ? { idx: myIdx } : undefined);
+        }
+
+        function submitAns(idx) {
+            db.ref('ans').set({ idx: myIdx, choice: idx });
+        }
+    </script>
+</body>
+</html>
